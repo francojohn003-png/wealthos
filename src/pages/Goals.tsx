@@ -225,7 +225,7 @@ export default function Goals({ refresh, onGoalUpdate }: Props) {
         />
       )}
 
-      <div className="h-6" />
+      <div className="h-32" />
     </div>
   )
 }

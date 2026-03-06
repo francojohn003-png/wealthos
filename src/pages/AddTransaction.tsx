@@ -232,7 +232,7 @@ export default function AddTransaction({ onClose, onSuccess }: Props) {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-teal-500 text-white font-bold py-4 rounded-2xl text-sm shadow-lg shadow-blue-200 disabled:opacity-60 mb-4"
+            className="w-full bg-gradient-to-r from-blue-600 to-teal-500 text-white font-bold py-4 rounded-2xl text-sm shadow-lg shadow-blue-200 disabled:opacity-60 mb-32"
           >
             {loading ? '⏳ Saving...' : `Save ${type === 'income' ? 'Income' : type === 'transfer' ? 'Transfer' : 'Expense'}`}
           </button>
