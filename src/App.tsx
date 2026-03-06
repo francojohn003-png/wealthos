@@ -98,7 +98,7 @@ function App() {
         {currentPage === 'dashboard' && <DashboardPage userName={userName} onAddTransaction={() => setShowAddTransaction(true)} />}
         {currentPage === 'budgeting' && <BudgetingPage />}
         {currentPage === 'transactions' && <Transactions onAddNew={() => setShowAddTransaction(true)} refresh={refreshTransactions} />}
-        {currentPage === 'goals' && <Goals refresh={refreshGoals} />}
+        {currentPage === 'goals' && <Goals refresh={refreshGoals} onGoalUpdate={() => setRefreshTransactions(r => r + 1)} />}
         {currentPage === 'suggestions' && <SuggestionsPage />}
         {currentPage === 'settings' && <SettingsPage onSignOut={handleSignOut} userName={userName} userEmail={session.user.email || ''} />}
       </div>

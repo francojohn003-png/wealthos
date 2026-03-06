@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import GoalDetail from './GoalDetail'
 
 type Goal = {
   id: string
@@ -18,12 +19,14 @@ type Goal = {
 
 type Props = {
   refresh: number
+  onGoalUpdate: () => void
 }
 
-export default function Goals({ refresh }: Props) {
+export default function Goals({ refresh, onGoalUpdate }: Props) {
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
 
   useEffect(() => {
     loadGoals()
@@ -68,6 +71,20 @@ export default function Goals({ refresh }: Props) {
     const daysElapsed = totalDays - days
     const expectedAmount = (goal.target_amount / totalDays) * daysElapsed
     return goal.current_amount >= expectedAmount * 0.9
+  }
+
+  // Show goal detail if selected
+  if (selectedGoalId) {
+    return (
+      <GoalDetail
+        goalId={selectedGoalId}
+        onBack={() => setSelectedGoalId(null)}
+        onUpdate={() => {
+          onGoalUpdate()
+          loadGoals()
+        }}
+      />
+    )
   }
 
   return (
@@ -122,7 +139,7 @@ export default function Goals({ refresh }: Props) {
             const remaining = goal.target_amount - goal.current_amount
 
             return (
-              <div key={goal.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
+              <div key={goal.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 cursor-pointer" onClick={() => setSelectedGoalId(goal.id)}>
                 {/* TOP ROW */}
                 <div className="flex items-start gap-3 mb-3">
                   <span className="text-3xl">{goal.emoji}</span>
