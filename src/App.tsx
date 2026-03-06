@@ -156,7 +156,7 @@ function DashboardPage({ userName, onAddTransaction }: { userName: string, onAdd
 
   useEffect(() => {
     loadStats()
-  }, [])
+  }, [userName])
 
   async function loadStats() {
     const { data: { user } } = await supabase.auth.getUser()
