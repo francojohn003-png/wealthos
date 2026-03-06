@@ -5,6 +5,7 @@ import Auth from './pages/Auth'
 import AddTransaction from './pages/AddTransaction'
 import Transactions from './pages/Transactions'
 import Goals from './pages/Goals'
+import Budgeting from './pages/Budgeting'
 import type { Session } from '@supabase/supabase-js'
 
 function App() {
@@ -94,9 +95,9 @@ function App() {
       )}
 
       {/* PAGE CONTENT */}
-      <div className="pb-24">
+      <div className="pb-28">
         {currentPage === 'dashboard' && <DashboardPage userName={userName} onAddTransaction={() => setShowAddTransaction(true)} />}
-        {currentPage === 'budgeting' && <BudgetingPage />}
+        {currentPage === 'budgeting' && <Budgeting />}
         {currentPage === 'transactions' && <Transactions onAddNew={() => setShowAddTransaction(true)} refresh={refreshTransactions} />}
         {currentPage === 'goals' && <Goals refresh={refreshGoals} onGoalUpdate={() => setRefreshTransactions(r => r + 1)} />}
         {currentPage === 'suggestions' && <SuggestionsPage />}
@@ -303,51 +304,6 @@ function DashboardPage({ userName, onAddTransaction }: { userName: string, onAdd
   )
 }
 
-/* ── BUDGETING PAGE ───────────────────────────────── */
-function BudgetingPage() {
-  const categories = [
-    { icon: '🏠', name: 'Rent', spent: 0, budget: 0, color: '#1A56DB' },
-    { icon: '🍽️', name: 'Dining Out', spent: 0, budget: 0, color: '#EF4444' },
-    { icon: '🚕', name: 'Transport', spent: 0, budget: 0, color: '#F59E0B' },
-    { icon: '🛒', name: 'Groceries', spent: 0, budget: 0, color: '#059669' },
-    { icon: '🤝', name: 'Parents Support', spent: 0, budget: 0, color: '#8B5CF6' },
-  ]
-  return (
-    <div>
-      <div className="bg-gradient-to-br from-[#0F1F3D] to-[#1A3A6C] px-5 pt-5 pb-6">
-        <p className="text-white/50 text-[11px] font-semibold uppercase tracking-widest mb-1">This Month</p>
-        <p className="text-white text-3xl font-extrabold tracking-tight">KES 0</p>
-        <p className="text-white/50 text-xs mt-1 mb-4">No transactions yet</p>
-        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full w-0 bg-gradient-to-r from-emerald-400 to-blue-400 rounded-full" />
-        </div>
-      </div>
-      <div className="mx-4 mt-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[15px] font-bold text-[#0F1F3D]">Categories</h2>
-          <button className="text-xs font-bold text-blue-600">+ Add Category</button>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {categories.map((cat, i) => (
-            <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i < categories.length - 1 ? 'border-b border-gray-50' : ''}`}>
-              <span className="text-base">{cat.icon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800">{cat.name}</p>
-                <div className="mt-1.5 h-1.5 bg-gray-100 rounded-full overflow-hidden w-full">
-                  <div className="h-full rounded-full w-0" style={{ backgroundColor: cat.color }} />
-                </div>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-gray-400">KES 0</p>
-                <p className="text-[10px] text-gray-300">no budget set</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 /* ── SUGGESTIONS PAGE ─────────────────────────────── */
 function SuggestionsPage() {
