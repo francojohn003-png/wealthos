@@ -348,27 +348,6 @@ function BudgetingPage() {
   )
 }
 
-/* ── GOALS PAGE ───────────────────────────────────── */
-function GoalsPage() {
-  return (
-    <div className="px-4 pt-4">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-lg font-extrabold text-[#0F1F3D]">My Goals</h1>
-          <p className="text-xs text-gray-400 mt-0.5">No active goals yet</p>
-        </div>
-        <button className="bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl">＋ New Goal</button>
-      </div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-        <p className="text-4xl mb-3">🎯</p>
-        <p className="text-sm font-bold text-gray-700 mb-1">No goals yet</p>
-        <p className="text-xs text-gray-400 mb-4">Set your first savings goal — car, house, emergency fund, or anything else.</p>
-        <button className="bg-blue-600 text-white text-xs font-bold px-6 py-2.5 rounded-xl">Create First Goal</button>
-      </div>
-    </div>
-  )
-}
-
 /* ── SUGGESTIONS PAGE ─────────────────────────────── */
 function SuggestionsPage() {
   return (
