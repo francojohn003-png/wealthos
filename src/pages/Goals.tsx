@@ -310,7 +310,7 @@ function AddGoalForm({ onClose, onSuccess }: { onClose: () => void, onSuccess: (
           ))}
         </div>
 
-        <div className="px-5 py-4">
+        <div className="px-5 py-32">
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
               <p className="text-red-600 text-sm font-medium">⚠️ {error}</p>
