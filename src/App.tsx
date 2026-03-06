@@ -13,7 +13,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [showAddTransaction, setShowAddTransaction] = useState(false)
   const [refreshTransactions, setRefreshTransactions] = useState(0)
-  const [refreshGoals, setRefreshGoals] = useState(0)
+    const [refreshGoals] = useState(0)
 
   useEffect(() => {
     // Get current session
