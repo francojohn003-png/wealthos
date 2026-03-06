@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import Auth from './pages/Auth'
+import AddTransaction from './pages/AddTransaction'
+import Transactions from './pages/Transactions'
 import type { Session } from '@supabase/supabase-js'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState('dashboard')
+  const [showAddTransaction, setShowAddTransaction] = useState(false)
+  const [refreshTransactions, setRefreshTransactions] = useState(0)
 
   useEffect(() => {
     // Get current session
@@ -74,10 +78,23 @@ function App() {
         </div>
       </div>
 
+      {/* ADD TRANSACTION MODAL */}
+      {showAddTransaction && (
+        <AddTransaction
+          onClose={() => setShowAddTransaction(false)}
+          onSuccess={() => {
+            setShowAddTransaction(false)
+            setRefreshTransactions(r => r + 1)
+            setCurrentPage('transactions')
+          }}
+        />
+      )}
+
       {/* PAGE CONTENT */}
       <div className="pb-24">
-        {currentPage === 'dashboard' && <DashboardPage userName={userName} />}
+        {currentPage === 'dashboard' && <DashboardPage userName={userName} onAddTransaction={() => setShowAddTransaction(true)} />}
         {currentPage === 'budgeting' && <BudgetingPage />}
+        {currentPage === 'transactions' && <Transactions onAddNew={() => setShowAddTransaction(true)} refresh={refreshTransactions} />}
         {currentPage === 'goals' && <GoalsPage />}
         {currentPage === 'suggestions' && <SuggestionsPage />}
         {currentPage === 'settings' && <SettingsPage onSignOut={handleSignOut} userName={userName} userEmail={session.user.email || ''} />}
@@ -89,13 +106,14 @@ function App() {
         <NavItem icon="💰" label="Budget" active={currentPage === 'budgeting'} onClick={() => setCurrentPage('budgeting')} />
         <div
           className="flex flex-col items-center -mt-5 cursor-pointer"
-          onClick={() => alert('Quick Add coming in Phase 3!')}
+          onClick={() => setShowAddTransaction(true)}
         >
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-blue-200">
             ＋
           </div>
         </div>
         <NavItem icon="🎯" label="Goals" active={currentPage === 'goals'} onClick={() => setCurrentPage('goals')} />
+        <NavItem icon="💳" label="Transactions" active={currentPage === 'transactions'} onClick={() => setCurrentPage('transactions')} />
         <NavItem icon="⚙️" label="Settings" active={currentPage === 'settings'} onClick={() => setCurrentPage('settings')} />
       </div>
 
@@ -122,7 +140,7 @@ function NavItem({ icon, label, active, onClick }: {
 }
 
 /* ── DASHBOARD PAGE ───────────────────────────────── */
-function DashboardPage({ userName }: { userName: string }) {
+function DashboardPage({ userName, onAddTransaction }: { userName: string, onAddTransaction: () => void }) {
   const firstName = userName.split(' ')[0]
   return (
     <div>
@@ -156,7 +174,7 @@ function DashboardPage({ userName }: { userName: string }) {
         <p className="text-sm font-bold text-[#0F1F3D] mb-1">🎉 Welcome to WealthOS!</p>
         <p className="text-xs text-gray-500 leading-relaxed">Your account is ready. Start by adding your first transaction or setting up a savings goal.</p>
         <div className="flex gap-2 mt-3">
-          <button className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">+ Add Transaction</button>
+          <button onClick={onAddTransaction} className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">+ Add Transaction</button>
           <button className="bg-white border border-blue-200 text-blue-600 text-xs font-bold px-3 py-1.5 rounded-lg">+ Set a Goal</button>
         </div>
       </div>
