@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase'
 import Auth from './pages/Auth'
 import AddTransaction from './pages/AddTransaction'
 import Transactions from './pages/Transactions'
+import Goals from './pages/Goals'
 import type { Session } from '@supabase/supabase-js'
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [showAddTransaction, setShowAddTransaction] = useState(false)
   const [refreshTransactions, setRefreshTransactions] = useState(0)
+  const [refreshGoals, setRefreshGoals] = useState(0)
 
   useEffect(() => {
     // Get current session
@@ -95,7 +97,7 @@ function App() {
         {currentPage === 'dashboard' && <DashboardPage userName={userName} onAddTransaction={() => setShowAddTransaction(true)} />}
         {currentPage === 'budgeting' && <BudgetingPage />}
         {currentPage === 'transactions' && <Transactions onAddNew={() => setShowAddTransaction(true)} refresh={refreshTransactions} />}
-        {currentPage === 'goals' && <GoalsPage />}
+        {currentPage === 'goals' && <Goals refresh={refreshGoals} />}
         {currentPage === 'suggestions' && <SuggestionsPage />}
         {currentPage === 'settings' && <SettingsPage onSignOut={handleSignOut} userName={userName} userEmail={session.user.email || ''} />}
       </div>
@@ -142,6 +144,64 @@ function NavItem({ icon, label, active, onClick }: {
 /* ── DASHBOARD PAGE ───────────────────────────────── */
 function DashboardPage({ userName, onAddTransaction }: { userName: string, onAddTransaction: () => void }) {
   const firstName = userName.split(' ')[0]
+  const [stats, setStats] = useState({
+    totalIncome: 0,
+    totalExpense: 0,
+    balance: 0,
+    transactionCount: 0,
+    goalCount: 0,
+    totalSaved: 0,
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadStats()
+  }, [])
+
+  async function loadStats() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Get this month's transactions
+    const startOfMonth = new Date()
+    startOfMonth.setDate(1)
+    startOfMonth.setHours(0, 0, 0, 0)
+
+    const { data: transactions } = await supabase
+      .from('transactions')
+      .select('amount, type')
+      .eq('user_id', user.id)
+      .gte('transaction_date', startOfMonth.toISOString().split('T')[0])
+
+    const { data: goals } = await supabase
+      .from('goals')
+      .select('current_amount')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+
+    if (transactions) {
+      const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
+      const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
+      const totalSaved = goals ? goals.reduce((sum, g) => sum + g.current_amount, 0) : 0
+
+      setStats({
+        totalIncome: income,
+        totalExpense: expense,
+        balance: income - expense,
+        transactionCount: transactions.length,
+        goalCount: goals ? goals.length : 0,
+        totalSaved,
+      })
+    }
+    setLoading(false)
+  }
+
+  function formatAmount(amount: number) {
+    if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`
+    if (amount >= 1000) return `${(amount / 1000).toFixed(1)}K`
+    return amount.toLocaleString('en-KE')
+  }
+
   return (
     <div>
       {/* HERO */}
@@ -150,70 +210,90 @@ function DashboardPage({ userName, onAddTransaction }: { userName: string, onAdd
         <p className="text-white/50 text-sm font-medium relative">Good morning,</p>
         <h1 className="text-white text-xl font-bold relative mb-5">{firstName} 👋</h1>
         <div className="bg-white/10 border border-white/15 rounded-2xl p-4 backdrop-blur-sm relative">
-          <p className="text-white/50 text-[11px] font-semibold uppercase tracking-widest mb-1">Total Net Worth</p>
-          <p className="text-white text-4xl font-extrabold tracking-tight">KES 0</p>
-          <p className="text-white/40 text-xs font-medium mt-2">Add your accounts to see your net worth</p>
+          <p className="text-white/50 text-[11px] font-semibold uppercase tracking-widest mb-1">This Month's Balance</p>
+          <p className="text-white text-4xl font-extrabold tracking-tight">
+            {loading ? '...' : `KES ${formatAmount(stats.balance)}`}
+          </p>
+          <p className={`text-xs font-semibold mt-2 ${stats.balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {loading ? '' : stats.balance >= 0 ? '▲ Positive balance this month' : '▼ Spending more than earning'}
+          </p>
           <div className="flex gap-2 mt-4 overflow-x-auto scrollbar-none">
             {[
-              { label: 'Savings', value: '0' },
-              { label: 'Invested', value: '0' },
-              { label: 'Debt', value: '0' },
-              { label: 'M-PESA', value: '0' },
+              { label: 'Income', value: loading ? '...' : `KES ${formatAmount(stats.totalIncome)}` },
+              { label: 'Expenses', value: loading ? '...' : `KES ${formatAmount(stats.totalExpense)}` },
+              { label: 'Saved', value: loading ? '...' : `KES ${formatAmount(stats.totalSaved)}` },
+              { label: 'Goals', value: loading ? '...' : `${stats.goalCount} active` },
             ].map(chip => (
               <div key={chip.label} className="bg-white/8 border border-white/10 rounded-xl px-3 py-2 flex-shrink-0">
                 <p className="text-white/40 text-[10px]">{chip.label}</p>
-                <p className="text-white text-sm font-bold">KES {chip.value}</p>
+                <p className="text-white text-sm font-bold">{chip.value}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* WELCOME MESSAGE */}
-      <div className="mx-4 mt-4 bg-blue-50 border border-blue-100 rounded-2xl p-4">
-        <p className="text-sm font-bold text-[#0F1F3D] mb-1">🎉 Welcome to WealthOS!</p>
-        <p className="text-xs text-gray-500 leading-relaxed">Your account is ready. Start by adding your first transaction or setting up a savings goal.</p>
-        <div className="flex gap-2 mt-3">
-          <button onClick={onAddTransaction} className="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">+ Add Transaction</button>
-          <button className="bg-white border border-blue-200 text-blue-600 text-xs font-bold px-3 py-1.5 rounded-lg">+ Set a Goal</button>
+      {/* QUICK ACTIONS */}
+      <div className="mx-4 mt-4">
+        <div className="flex gap-2">
+          <button
+            onClick={onAddTransaction}
+            className="flex-1 bg-blue-600 text-white text-xs font-bold px-3 py-3 rounded-xl flex items-center justify-center gap-1.5"
+          >
+            <span>💸</span> Add Transaction
+          </button>
+          <button className="flex-1 bg-white border border-gray-100 shadow-sm text-[#0F1F3D] text-xs font-bold px-3 py-3 rounded-xl flex items-center justify-center gap-1.5">
+            <span>📄</span> Import M-PESA
+          </button>
         </div>
       </div>
 
-      {/* QUICK STATS */}
+      {/* STATS GRID */}
       <div className="mx-4 mt-4 grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-2xl mb-2">💳</p>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Transactions</p>
-          <p className="text-xl font-extrabold text-[#0F1F3D] tracking-tight mt-1">0</p>
-          <p className="text-[10px] text-gray-400 mt-1">this month</p>
+          <p className="text-2xl mb-2">💸</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Monthly Spend</p>
+          <p className="text-xl font-extrabold text-[#0F1F3D] tracking-tight mt-1">
+            {loading ? '...' : `KES ${formatAmount(stats.totalExpense)}`}
+          </p>
+          <p className="text-[10px] text-gray-400 mt-1">{stats.transactionCount} transactions</p>
+          <span className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${stats.totalExpense === 0 ? 'bg-gray-100 text-gray-500' : stats.balance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+            {stats.totalExpense === 0 ? 'No data yet' : stats.balance >= 0 ? 'On Track' : 'Over Budget'}
+          </span>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
           <p className="text-2xl mb-2">🎯</p>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Goals</p>
-          <p className="text-xl font-extrabold text-[#0F1F3D] tracking-tight mt-1">0</p>
-          <p className="text-[10px] text-gray-400 mt-1">active goals</p>
+          <p className="text-xl font-extrabold text-[#0F1F3D] tracking-tight mt-1">
+            {loading ? '...' : `${stats.goalCount} Active`}
+          </p>
+          <p className="text-[10px] text-gray-400 mt-1">
+            {loading ? '' : `KES ${formatAmount(stats.totalSaved)} saved`}
+          </p>
+          <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+            {stats.goalCount === 0 ? 'Set a goal' : 'In progress'}
+          </span>
         </div>
       </div>
 
-      {/* GET STARTED STEPS */}
+      {/* GET STARTED or RECENT */}
       <div className="mx-4 mt-4 mb-4">
-        <h2 className="text-[15px] font-bold text-[#0F1F3D] mb-3">🚀 Get Started</h2>
+        <h2 className="text-[15px] font-bold text-[#0F1F3D] mb-3">🚀 Quick Actions</h2>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {[
-            { step: '1', title: 'Add your first transaction', desc: 'Track your income and expenses', done: false },
-            { step: '2', title: 'Set a savings goal', desc: 'Car, house, emergency fund...', done: false },
-            { step: '3', title: 'Connect an account', desc: 'M-PESA, bank, Sacco...', done: false },
-            { step: '4', title: 'Import M-PESA statement', desc: 'Upload your PDF history', done: false },
+            { step: '💳', title: 'View Transactions', desc: 'See all your income and expenses', page: 'transactions' },
+            { step: '🎯', title: 'Manage Goals', desc: 'Track your savings goals', page: 'goals' },
+            { step: '💰', title: 'View Budget', desc: 'Check spending by category', page: 'budgeting' },
           ].map((item, i, arr) => (
-            <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i < arr.length - 1 ? 'border-b border-gray-50' : ''}`}>
-              <div className="w-7 h-7 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-bold text-blue-600">{item.step}</span>
+            <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i < arr.length - 1 ? 'border-b border-gray-50' : ''} cursor-pointer active:bg-gray-50`}>
+              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 text-lg">
+                {item.step}
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-800">{item.title}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
               </div>
-              <span className="text-gray-200 text-lg">›</span>
+              <span className="text-gray-300 text-lg">›</span>
             </div>
           ))}
         </div>
