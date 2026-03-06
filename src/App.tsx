@@ -1,3 +1,4 @@
+// WealthOS v2.0 - Phase 4
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import Auth from './pages/Auth'
