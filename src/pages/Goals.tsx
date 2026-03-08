@@ -290,10 +290,10 @@ function AddGoalForm({ onClose, onSuccess }: { onClose: () => void, onSuccess: (
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end" style={{ paddingBottom: '64px' }}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
-        <div className="flex justify-center pt-3 pb-1">
+      <div className="relative bg-white rounded-t-3xl shadow-2xl overflow-y-auto" style={{ maxHeight: 'calc(90vh - 64px)' }}>
+        <div className="flex justify-center pt-2 pb-0">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
@@ -304,13 +304,13 @@ function AddGoalForm({ onClose, onSuccess }: { onClose: () => void, onSuccess: (
         </div>
 
         {/* STEP INDICATOR */}
-        <div className="flex gap-1.5 px-5 pt-4">
+        <div className="flex gap-1.5 px-5 pt-2">
           {[1, 2, 3].map(s => (
             <div key={s} className={`h-1.5 flex-1 rounded-full ${step >= s ? 'bg-blue-600' : 'bg-gray-100'}`} />
           ))}
         </div>
 
-        <div className="px-5 py-32">
+        <div className="px-5 py-4">
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
               <p className="text-red-600 text-sm font-medium">⚠️ {error}</p>
