@@ -1,4 +1,4 @@
-// WealthOS v2.0 - Phase 6 + Premium Desktop Layout
+// WealthOS v2.0 - Phase 7 M-PESA Import
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import Auth from './pages/Auth'
@@ -6,6 +6,7 @@ import AddTransaction from './pages/AddTransaction'
 import Transactions from './pages/Transactions'
 import Goals from './pages/Goals'
 import Budgeting from './pages/Budgeting'
+import MpesaImport from './pages/MpesaImport'
 import type { Session } from '@supabase/supabase-js'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [showAddTransaction, setShowAddTransaction] = useState(false)
+  const [showMpesaImport, setShowMpesaImport] = useState(false)
   const [refreshTransactions, setRefreshTransactions] = useState(0)
   const [refreshGoals] = useState(0)
 
@@ -60,7 +62,13 @@ function App() {
 
   const pageContent = (
     <>
-      {currentPage === 'dashboard'    && <DashboardPage userName={userName} onAddTransaction={() => setShowAddTransaction(true)} />}
+      {currentPage === 'dashboard'    && (
+        <DashboardPage
+          userName={userName}
+          onAddTransaction={() => setShowAddTransaction(true)}
+          onImportMpesa={() => setShowMpesaImport(true)}
+        />
+      )}
       {currentPage === 'budgeting'    && <Budgeting />}
       {currentPage === 'transactions' && <Transactions onAddNew={() => setShowAddTransaction(true)} refresh={refreshTransactions} />}
       {currentPage === 'goals'        && <Goals refresh={refreshGoals} onGoalUpdate={() => setRefreshTransactions(r => r + 1)} />}
@@ -94,7 +102,6 @@ function App() {
             </div>
           </div>
 
-          {/* Divider */}
           <div className="mx-6 mb-5 h-px bg-white/8" />
 
           {/* User Profile */}
@@ -111,10 +118,7 @@ function App() {
             </div>
           </div>
 
-          {/* Nav section label */}
-          <p className="px-6 text-[9px] font-bold text-white/20 uppercase tracking-[0.18em] mb-1.5">
-            Menu
-          </p>
+          <p className="px-6 text-[9px] font-bold text-white/20 uppercase tracking-[0.18em] mb-1.5">Menu</p>
 
           {/* Nav Items */}
           <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
@@ -130,10 +134,7 @@ function App() {
                     boxShadow: '0 4px 12px rgba(59,130,246,0.25)'
                   } : {}}
                 >
-                  {/* Active left accent bar */}
-                  {active && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-white/60" />
-                  )}
+                  {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-white/60" />}
                   <span className="text-lg leading-none w-6 text-center">{item.icon}</span>
                   <span className={`text-sm font-semibold flex-1 ${active ? 'text-white' : 'text-white/50 group-hover:text-white/80'} transition-colors`}>
                     {item.label}
@@ -155,8 +156,14 @@ function App() {
               ＋ Add Transaction
             </button>
             <button
+              onClick={() => setShowMpesaImport(true)}
+              className="w-full py-2.5 rounded-xl text-xs font-semibold text-white/40 hover:text-white/70 border border-white/8 hover:border-white/20 transition-all flex items-center justify-center gap-1.5"
+            >
+              📄 Import M-PESA
+            </button>
+            <button
               onClick={handleSignOut}
-              className="w-full py-2 text-[11px] font-medium text-white/25 hover:text-white/50 transition-colors"
+              className="w-full py-2 text-[11px] font-medium text-white/20 hover:text-white/40 transition-colors"
             >
               Sign out
             </button>
@@ -165,8 +172,6 @@ function App() {
 
         {/* ── MAIN CONTENT ── */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-          {/* Minimal top bar */}
           <header className="bg-white/60 backdrop-blur-xl border-b border-black/5 px-8 py-3.5 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-gradient-to-br from-blue-500 to-teal-400 shadow-sm shadow-blue-300" />
@@ -179,22 +184,13 @@ function App() {
               </p>
             </div>
             <div className="flex items-center gap-2.5">
-              <button className="w-9 h-9 rounded-xl bg-gray-100/80 hover:bg-blue-50 flex items-center justify-center text-base transition-colors">
-                🔔
-              </button>
-              <div
-                className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center text-white text-xs font-extrabold cursor-pointer shadow-md"
-                title={`Signed in as ${userName}`}
-              >
+              <button className="w-9 h-9 rounded-xl bg-gray-100/80 hover:bg-blue-50 flex items-center justify-center text-base transition-colors">🔔</button>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center text-white text-xs font-extrabold cursor-pointer shadow-md" title={`Signed in as ${userName}`}>
                 {userInitials}
               </div>
             </div>
           </header>
-
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto">
-            {pageContent}
-          </div>
+          <div className="flex-1 overflow-y-auto">{pageContent}</div>
         </main>
       </div>
 
@@ -202,18 +198,14 @@ function App() {
           MOBILE LAYOUT  (unchanged)
       ═══════════════════════════════════════ */}
       <div className="md:hidden min-h-screen bg-[#F0F4FF]">
-
         <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
-              💰
-            </div>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-sm">💰</div>
             <span className="font-bold text-[#0F1F3D] text-lg tracking-tight">WealthOS</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-base cursor-pointer hover:bg-blue-50">🔔</div>
-            <div onClick={handleSignOut} title="Sign out"
-              className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white text-xs font-bold cursor-pointer">
+            <div onClick={handleSignOut} title="Sign out" className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white text-xs font-bold cursor-pointer">
               {userInitials}
             </div>
           </div>
@@ -233,7 +225,7 @@ function App() {
         </div>
       </div>
 
-      {/* Add Transaction Modal — shared */}
+      {/* ── SHARED MODALS ── */}
       {showAddTransaction && (
         <AddTransaction
           onClose={() => setShowAddTransaction(false)}
@@ -244,6 +236,18 @@ function App() {
           }}
         />
       )}
+
+      {showMpesaImport && (
+        <MpesaImport
+          onClose={() => setShowMpesaImport(false)}
+          onSuccess={() => {
+            setShowMpesaImport(false)
+            setRefreshTransactions(r => r + 1)
+            setCurrentPage('transactions')
+          }}
+        />
+      )}
+
     </div>
   )
 }
@@ -261,7 +265,11 @@ function NavItem({ icon, label, active, onClick }: {
 }
 
 /* ── DASHBOARD PAGE ───────────────────────────────── */
-function DashboardPage({ userName, onAddTransaction }: { userName: string, onAddTransaction: () => void }) {
+function DashboardPage({ userName, onAddTransaction, onImportMpesa }: {
+  userName: string
+  onAddTransaction: () => void
+  onImportMpesa: () => void
+}) {
   const firstName = userName.split(' ')[0]
   const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, balance: 0, transactionCount: 0, goalCount: 0, totalSaved: 0 })
   const [loading, setLoading] = useState(true)
@@ -276,7 +284,7 @@ function DashboardPage({ userName, onAddTransaction }: { userName: string, onAdd
     const { data: transactions } = await supabase.from('transactions').select('amount, type').eq('user_id', user.id).gte('transaction_date', startOfMonth.toISOString().split('T')[0])
     const { data: goals } = await supabase.from('goals').select('current_amount').eq('user_id', user.id).eq('status', 'active')
     if (transactions) {
-      const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+      const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
       const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
       setStats({ totalIncome: income, totalExpense: expense, balance: income - expense, transactionCount: transactions.length, goalCount: goals?.length || 0, totalSaved: goals?.reduce((s, g) => s + g.current_amount, 0) || 0 })
     }
@@ -291,6 +299,7 @@ function DashboardPage({ userName, onAddTransaction }: { userName: string, onAdd
 
   return (
     <div>
+      {/* HERO */}
       <div className="bg-gradient-to-br from-[#0F1F3D] via-[#142847] to-[#1A3A6C] px-5 pt-5 pb-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-teal-500/10 to-transparent" />
         <p className="text-white/50 text-sm font-medium relative">Good morning,</p>
@@ -317,17 +326,25 @@ function DashboardPage({ userName, onAddTransaction }: { userName: string, onAdd
         </div>
       </div>
 
+      {/* QUICK ACTIONS */}
       <div className="mx-4 mt-4">
         <div className="flex gap-2">
-          <button onClick={onAddTransaction} className="flex-1 bg-blue-600 text-white text-xs font-bold px-3 py-3 rounded-xl flex items-center justify-center gap-1.5">
+          <button
+            onClick={onAddTransaction}
+            className="flex-1 bg-blue-600 text-white text-xs font-bold px-3 py-3 rounded-xl flex items-center justify-center gap-1.5"
+          >
             <span>💸</span> Add Transaction
           </button>
-          <button className="flex-1 bg-white border border-gray-100 shadow-sm text-[#0F1F3D] text-xs font-bold px-3 py-3 rounded-xl flex items-center justify-center gap-1.5">
+          <button
+            onClick={onImportMpesa}
+            className="flex-1 bg-white border border-gray-100 shadow-sm text-[#0F1F3D] text-xs font-bold px-3 py-3 rounded-xl flex items-center justify-center gap-1.5"
+          >
             <span>📄</span> Import M-PESA
           </button>
         </div>
       </div>
 
+      {/* STATS GRID */}
       <div className="mx-4 mt-4 grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
           <p className="text-2xl mb-2">💸</p>
@@ -349,6 +366,7 @@ function DashboardPage({ userName, onAddTransaction }: { userName: string, onAdd
         </div>
       </div>
 
+      {/* QUICK LINKS */}
       <div className="mx-4 mt-4 mb-4">
         <h2 className="text-[15px] font-bold text-[#0F1F3D] mb-3">🚀 Quick Actions</h2>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -404,10 +422,10 @@ function SettingsPage({ onSignOut, userName, userEmail }: { onSignOut: () => voi
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Notifications</p>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
         {[
-          { key: 'daily', label: 'Daily Mission', desc: '8:00 AM reminder' },
-          { key: 'overspend', label: 'Overspend Alerts', desc: 'Instant push notification' },
-          { key: 'milestones', label: 'Goal Milestones', desc: 'Celebrate your progress' },
-          { key: 'weekly', label: 'Weekly Summary', desc: 'Every Sunday 7 PM' },
+          { key: 'daily',      label: 'Daily Mission',    desc: '8:00 AM reminder' },
+          { key: 'overspend',  label: 'Overspend Alerts', desc: 'Instant push notification' },
+          { key: 'milestones', label: 'Goal Milestones',  desc: 'Celebrate your progress' },
+          { key: 'weekly',     label: 'Weekly Summary',   desc: 'Every Sunday 7 PM' },
         ].map((item, i, arr) => (
           <div key={item.key} className={`flex items-center justify-between px-4 py-3.5 ${i < arr.length - 1 ? 'border-b border-gray-50' : ''}`}>
             <div>
@@ -426,8 +444,8 @@ function SettingsPage({ onSignOut, userName, userEmail }: { onSignOut: () => voi
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Preferences</p>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
         {[
-          { label: 'Currency', value: 'KES · Kenyan Shilling' },
-          { label: 'Payday', value: 'Day 1 of every month' },
+          { label: 'Currency',    value: 'KES · Kenyan Shilling' },
+          { label: 'Payday',      value: 'Day 1 of every month' },
           { label: 'Export Data', value: 'CSV or PDF' },
         ].map((item, i, arr) => (
           <div key={i} className={`flex items-center justify-between px-4 py-3.5 ${i < arr.length - 1 ? 'border-b border-gray-50' : ''}`}>
