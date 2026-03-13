@@ -140,6 +140,20 @@ export default function MpesaImport({ onClose, onSuccess }: {
         confidence_score: tx.category === '❓ Other' ? 0.3 : 0.9,
       })
 
+    // Save contact rule for unknown personal transfers
+      if (categoryId === CATEGORY_MAP['Other']) {
+        const contactName = tx.merchant || tx.details.slice(0, 60)
+        await supabase.from('contact_rules').upsert({
+          user_id: user.id,
+          contact_name: contactName,
+          category_id: categoryId,
+          times_seen: 1,
+        }, {
+          onConflict: 'user_id,contact_name',
+          ignoreDuplicates: false,
+        })
+      }
+
       saved++
       setProgress(Math.round((saved / toImport.length) * 100))
     }
