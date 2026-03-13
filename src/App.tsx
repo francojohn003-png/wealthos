@@ -457,6 +457,7 @@ function SettingsPage({ onSignOut, userName, userEmail }: { onSignOut: () => voi
           </div>
         ))}
       </div>
+      <ContactRules />
       <button onClick={onSignOut} className="w-full bg-red-50 border border-red-100 text-red-600 font-bold py-4 rounded-2xl text-sm mb-8">
         Sign Out
       </button>
@@ -464,4 +465,110 @@ function SettingsPage({ onSignOut, userName, userEmail }: { onSignOut: () => voi
   )
 }
 
+/* ── CONTACT RULES ────────────────────────────────── */
+function ContactRules() {
+  const [rules, setRules] = useState<any[]>([])
+  const [uncategorized, setUncategorized] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [categories, setCategories] = useState<any[]>([])
+
+  useEffect(() => { loadData() }, [])
+
+  async function loadData() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const [{ data: rulesData }, { count }, { data: catsData }] = await Promise.all([
+      supabase.from('contact_rules').select('*, categories(name, icon)').eq('user_id', user.id).order('times_seen', { ascending: false }),
+      supabase.from('transactions').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('needs_review', true),
+      supabase.from('categories').select('id, name, icon').order('name'),
+    ])
+
+    setRules(rulesData || [])
+    setUncategorized(count || 0)
+    setCategories(catsData || [])
+    setLoading(false)
+  }
+
+  async function updateRule(id: string, categoryId: string) {
+    await supabase.from('contact_rules').update({ category_id: categoryId }).eq('id', id)
+    setEditingId(null)
+    loadData()
+  }
+
+  async function deleteRule(id: string) {
+    await supabase.from('contact_rules').delete().eq('id', id)
+    loadData()
+  }
+
+  return (
+    <div className="mb-4">
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Contact Rules</p>
+
+      {uncategorized > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-3 flex items-center gap-3">
+          <span className="text-2xl">⚠️</span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-amber-800">{uncategorized} transactions need review</p>
+            <p className="text-xs text-amber-600 mt-0.5">Add contact rules below to auto-categorize future imports</p>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
+          <p className="text-gray-400 text-sm">Loading...</p>
+        </div>
+      ) : rules.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center">
+          <p className="text-3xl mb-2">📋</p>
+          <p className="text-sm font-bold text-gray-700 mb-1">No contact rules yet</p>
+          <p className="text-xs text-gray-400">Rules are created automatically when you categorize unknown M-PESA transactions</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {rules.map((rule, i) => (
+            <div key={rule.id} className={`px-4 py-3 ${i < rules.length - 1 ? 'border-b border-gray-50' : ''}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#0F1F3D] truncate">{rule.contact_name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Seen {rule.times_seen}x</p>
+                </div>
+                {editingId === rule.id ? (
+                  <select
+                    autoFocus
+                    defaultValue={rule.category_id}
+                    onChange={e => updateRule(rule.id, e.target.value)}
+                    onBlur={() => setEditingId(null)}
+                    className="text-xs border border-blue-300 rounded-lg px-2 py-1 bg-white outline-none"
+                  >
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingId(rule.id)}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100"
+                    >
+                      {rule.categories?.icon} {rule.categories?.name || 'Other'} ✏️
+                    </button>
+                    <button
+                      onClick={() => deleteRule(rule.id)}
+                      className="text-xs text-red-400 hover:text-red-600 font-bold px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 export default App
