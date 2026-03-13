@@ -1,19 +1,16 @@
-// src/pages/MpesaImport.tsx
 import { useState, useRef } from 'react'
 import { parseMpesaPDF, type MpesaTransaction } from '../lib/mpesaParser'
 import { supabase } from '../lib/supabase'
 
 type Step = 'upload' | 'preview' | 'saving' | 'done'
 
-const CATEGORIES = [
+const CATEGORY_OPTIONS = [
   '💰 Income', '💼 Income', '📈 Investment', '💡 Utilities',
-  '💧 Utilities', '📡 Internet', '📱 Airtime', '💻 Subscriptions',
-  '🎬 Entertainment', '🛒 Groceries', '🍽️ Dining', '🚗 Transport',
-  '🏦 Banking', '🌍 Transfer', '💳 Debt', '👤 Send Money',
-  '🏪 Buy Goods', '📄 Bills', '❓ Other',
+  '📡 Internet', '📱 Airtime', '💻 Subscriptions', '🎬 Entertainment',
+  '🛒 Groceries', '🍽️ Dining', '🚗 Transport', '🏦 Banking',
+  '🌍 Transfer', '👤 Send Money', '🏪 Buy Goods', '📄 Bills', '❓ Other',
 ]
 
-// ── SUPABASE CATEGORY ID MAP ───────────────────────
 const CATEGORY_MAP: Record<string, string> = {
   'Salary':           'c226f0fe-3f69-43d0-8145-cebe9ad072a0',
   'Business Income':  '46e0aef5-a13b-4a78-9d5c-6e714ecf614e',
@@ -21,12 +18,9 @@ const CATEGORY_MAP: Record<string, string> = {
   'Dining Out':       '87454b7a-f628-423a-8a2b-d2545dc61b4b',
   'Utilities':        '84529fe3-031f-450b-8bf7-6d77ca50ab95',
   'Airtime & Data':   '075ecbb9-2f8e-41b4-9afe-fa98fc12e470',
-  'Parents Support':  'bac176d8-3e0f-4401-af26-161d94c4e744',
-  'Siblings Support': '2e7b9edf-f7e2-4f4b-b5ea-d57c82703b38',
-  'Chama':            '6e945b13-f4a8-45bb-b57b-828759fb8d59',
-  'Entertainment':    'ef01ecd2-f6b7-4a9a-9ab9-27b770f3180e',
+  'Entertainment':      'ef01ecd2-f6b7-4a9a-9ab9-27b770f3180e',
+  'Personal Growth':    'a5d0b611-7df9-4c35-a103-238f7e07d2f9',
   'Healthcare':       '0fdbcb80-44d3-4252-9fcf-463b68d05310',
-  'Clothing':         'ad7e3a37-6b8a-45b1-b693-43cb1b087e7c',
   'Savings Transfer': '272e1203-fa0c-4a69-a3de-e255ff1d7416',
   'Investment':       '82280669-8991-499f-924d-0821b9117e90',
   'Other':            '21fd9c1b-4dc6-4c97-ae17-9cb2e05d928d',
@@ -34,23 +28,42 @@ const CATEGORY_MAP: Record<string, string> = {
   'Groceries':        'b86aa2d5-be87-4548-b4b2-043c7dee0eae',
 }
 
-function mapToDbCategory(parserCategory: string, isIncome: boolean): string {
-  const c = parserCategory.toLowerCase()
+function getCategoryId(tx: MpesaTransaction): string {
+  const isIncome = tx.paid_in > 0
+  const d = tx.details.toLowerCase()
+
   if (isIncome) {
-    if (/salary|b2c|absa|equity|kcb|business/.test(c)) return CATEGORY_MAP['Salary']
+    if (/b2c|absa|equity|kcb|salary|business payment/.test(d)) return CATEGORY_MAP['Salary']
+    if (/unit trust|unitrust/.test(d))                          return CATEGORY_MAP['Investment']
     return CATEGORY_MAP['Business Income']
   }
-  if (/investment|ziidi|unit trust/.test(c))            return CATEGORY_MAP['Investment']
-  if (/transport|uber|bolt|matatu/.test(c))             return CATEGORY_MAP['Transport']
-  if (/dining|food|restaurant|butchery|samosa/.test(c)) return CATEGORY_MAP['Dining Out']
-  if (/utilities|kplc|water|electricity/.test(c))       return CATEGORY_MAP['Utilities']
-  if (/airtime|bundle|data|safaricom offers/.test(c))   return CATEGORY_MAP['Airtime & Data']
-  if (/entertainment|netflix|showmax|dstv/.test(c))     return CATEGORY_MAP['Entertainment']
-  if (/groceries|supermarket|naivas|quickmart/.test(c)) return CATEGORY_MAP['Groceries']
-  if (/healthcare|chemist|hospital|pharmacy/.test(c))   return CATEGORY_MAP['Healthcare']
-  if (/rent|landlord/.test(c))                          return CATEGORY_MAP['Rent']
-  if (/savings/.test(c))                                return CATEGORY_MAP['Savings Transfer']
+
+  if (/unit trust|unitrust/.test(d))                                   return CATEGORY_MAP['Investment']
+  if (/kplc|kenya power/.test(d))                                       return CATEGORY_MAP['Utilities']
+  if (/nairobi water|nawasco/.test(d))                                  return CATEGORY_MAP['Utilities']
+  if (/zuku|faiba|mtaa yangu|safaricom home/.test(d))                   return CATEGORY_MAP['Utilities']
+  if (/safaricom offers|bundle purchase|airtime purchase/.test(d))      return CATEGORY_MAP['Airtime & Data']
+  if (/globalpay|claude|pesa globalpay/.test(d))                        return CATEGORY_MAP['Entertainment']
+  if (/netflix|showmax|dstv|spotify|direct pay|pesapal/.test(d))        return CATEGORY_MAP['Entertainment']
+  if (/naivas|kahawa west|clean shelf|quickmart|carrefour/.test(d))     return CATEGORY_MAP['Groceries']
+  if (/butchery|samosa|java house|kfc|restaurant|royal ventures/.test(d)) return CATEGORY_MAP['Dining Out']
+  if (/uber|bolt|little cab/.test(d))                                   return CATEGORY_MAP['Transport']
+  if (/standard chartered|c2b|co-op|onafriq/.test(d))                  return CATEGORY_MAP['Savings Transfer']
+
+  const cat = tx.category.toLowerCase()
+  if (cat.includes('investment'))    return CATEGORY_MAP['Investment']
+  if (cat.includes('groceries'))     return CATEGORY_MAP['Groceries']
+  if (cat.includes('dining'))        return CATEGORY_MAP['Dining Out']
+  if (cat.includes('airtime'))       return CATEGORY_MAP['Airtime & Data']
+  if (cat.includes('utilities'))     return CATEGORY_MAP['Utilities']
+  if (cat.includes('transport'))     return CATEGORY_MAP['Transport']
+  if (cat.includes('entertainment')) return CATEGORY_MAP['Entertainment']
+
   return CATEGORY_MAP['Other']
+}
+
+function fmt(n: number) {
+  return n.toLocaleString('en-KE', { minimumFractionDigits: 2 })
 }
 
 export default function MpesaImport({ onClose, onSuccess }: {
@@ -68,7 +81,7 @@ export default function MpesaImport({ onClose, onSuccess }: {
 
   async function handleFile(file: File) {
     if (!file.name.endsWith('.pdf')) {
-      setError('Please upload a PDF file — download your statement from MySafaricom app')
+      setError('Please upload a PDF file')
       return
     }
     setError('')
@@ -80,8 +93,8 @@ export default function MpesaImport({ onClose, onSuccess }: {
       setSelected(new Set(clean.map((_, i) => i)))
       setStep('preview')
     } catch (e) {
-      setError('Could not read this PDF. Make sure it is a Safaricom M-PESA statement.')
       console.error(e)
+      setError('Could not read this PDF. Make sure it is a Safaricom M-PESA statement.')
     }
     setParsing(false)
   }
@@ -104,14 +117,13 @@ export default function MpesaImport({ onClose, onSuccess }: {
     if (!user) return
 
     const toImport = transactions.filter((_, i) => selected.has(i))
-    const total = toImport.length
     let saved = 0
 
     for (const tx of toImport) {
       const isIncome = tx.paid_in > 0
       const dbType = isIncome ? 'income' : 'expense'
       const amount = isIncome ? tx.paid_in : tx.true_cost
-      const categoryId = mapToDbCategory(tx.category + ' ' + tx.subcategory, isIncome)
+      const categoryId = getCategoryId(tx)
 
       await supabase.from('transactions').insert({
         user_id: user.id,
@@ -129,18 +141,13 @@ export default function MpesaImport({ onClose, onSuccess }: {
       })
 
       saved++
-      setProgress(Math.round((saved / total) * 100))
+      setProgress(Math.round((saved / toImport.length) * 100))
     }
 
     setStep('done')
-    setTimeout(() => { onSuccess() }, 1500)
+    setTimeout(() => onSuccess(), 1500)
   }
 
-  function fmt(n: number) {
-    return n.toLocaleString('en-KE', { minimumFractionDigits: 2 })
-  }
-
-  // ── UPLOAD SCREEN ──────────────────────────────
   if (step === 'upload') {
     return (
       <div className="fixed inset-0 z-[60] flex flex-col justify-end md:items-center md:justify-center">
@@ -193,12 +200,7 @@ export default function MpesaImport({ onClose, onSuccess }: {
           <div className="bg-gray-50 rounded-2xl p-4">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">How to get your statement</p>
             <div className="space-y-1.5">
-              {[
-                'Open MySafaricom app',
-                'Go to M-PESA → Statements',
-                'Select date range → Download PDF',
-                'Upload the PDF here',
-              ].map((s, i) => (
+              {['Open MySafaricom app', 'Go to M-PESA → Statements', 'Select date range → Download PDF', 'Upload the PDF here'].map((s, i) => (
                 <p key={i} className="text-xs text-gray-500 flex items-center gap-2">
                   <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">{i + 1}</span>
                   {s}
@@ -211,11 +213,10 @@ export default function MpesaImport({ onClose, onSuccess }: {
     )
   }
 
-  // ── PREVIEW SCREEN ─────────────────────────────
   if (step === 'preview') {
-    const selectedTxns = transactions.filter((_, i) => selected.has(i))
-    const totalIn  = selectedTxns.filter(t => t.paid_in > 0).reduce((s, t) => s + t.paid_in, 0)
-    const totalOut = selectedTxns.filter(t => t.withdrawal > 0).reduce((s, t) => s + t.true_cost, 0)
+    const sel = transactions.filter((_, i) => selected.has(i))
+    const totalIn  = sel.filter(t => t.paid_in > 0).reduce((s, t) => s + t.paid_in, 0)
+    const totalOut = sel.filter(t => t.withdrawal > 0).reduce((s, t) => s + t.true_cost, 0)
 
     return (
       <div className="fixed inset-0 z-[60] flex flex-col bg-white md:items-center md:justify-center md:bg-black/50 md:backdrop-blur-sm">
@@ -259,7 +260,6 @@ export default function MpesaImport({ onClose, onSuccess }: {
               const isSelected = selected.has(i)
               const isEditing = editingIdx === i
               const isIncome = tx.paid_in > 0
-
               return (
                 <div key={i} className={`px-4 py-3 border-b border-gray-50 transition-all ${isSelected ? 'bg-white' : 'bg-gray-50 opacity-50'}`}>
                   <div className="flex items-start gap-3" onClick={() => toggleSelect(i)}>
@@ -283,7 +283,6 @@ export default function MpesaImport({ onClose, onSuccess }: {
                       </div>
                     </div>
                   </div>
-
                   <div className="ml-8 mt-1.5">
                     {isEditing ? (
                       <select
@@ -293,11 +292,11 @@ export default function MpesaImport({ onClose, onSuccess }: {
                         onBlur={() => setEditingIdx(null)}
                         className="text-xs border border-blue-300 rounded-lg px-2 py-1 bg-white text-[#0F1F3D] font-semibold outline-none"
                       >
-                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     ) : (
                       <button
-                        onClick={() => setEditingIdx(i)}
+                        onClick={e => { e.stopPropagation(); setEditingIdx(i) }}
                         className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors"
                       >
                         {tx.category} ✏️
@@ -323,7 +322,6 @@ export default function MpesaImport({ onClose, onSuccess }: {
     )
   }
 
-  // ── SAVING SCREEN ──────────────────────────────
   if (step === 'saving') {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -343,7 +341,6 @@ export default function MpesaImport({ onClose, onSuccess }: {
     )
   }
 
-  // ── DONE SCREEN ────────────────────────────────
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-3xl p-8 w-72 text-center shadow-2xl">

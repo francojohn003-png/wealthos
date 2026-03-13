@@ -5,10 +5,7 @@
 import * as pdfjsLib from 'pdfjs-dist'
 
 // Point to the PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString()
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href
 
 export type MpesaTransaction = {
   receipt_no: string
@@ -31,78 +28,83 @@ export type MpesaTransaction = {
 // ── AUTO-CATEGORIZATION RULES ─────────────────────
 // Based on Francis's real M-PESA statement patterns
 const CATEGORY_RULES: { pattern: RegExp; category: string; subcategory: string; type: MpesaTransaction['type'] }[] = [
-  // INCOME
-  { pattern: /funds received from/i,           category: '💰 Income',      subcategory: 'Received Money',   type: 'income' },
-  { pattern: /b2c payment/i,                   category: '💼 Income',      subcategory: 'Salary / Business',type: 'income' },
-  { pattern: /business payment from/i,         category: '💼 Income',      subcategory: 'Salary / Business',type: 'income' },
-  { pattern: /unit trust withdraw/i,           category: '📈 Investment',  subcategory: 'Ziidi Withdrawal', type: 'investment' },
+  // INVESTMENTS — must come before income catch-alls
+  { pattern: /unit trust invest/i,             category: '📈 Investment',   subcategory: 'Ziidi Deposit',     type: 'investment' },
+  { pattern: /unit trust withdraw/i,           category: '📈 Investment',   subcategory: 'Ziidi Withdrawal',  type: 'investment' },
+  { pattern: /ziidi/i,                         category: '📈 Investment',   subcategory: 'Ziidi MMF',         type: 'investment' },
 
-  // INVESTMENTS
-  { pattern: /unit trust invest/i,             category: '📈 Investment',  subcategory: 'Ziidi Deposit',    type: 'investment' },
-  { pattern: /ziidi/i,                         category: '📈 Investment',  subcategory: 'Ziidi MMF',        type: 'investment' },
+  // INCOME
+  { pattern: /funds received from/i,           category: '💰 Income',       subcategory: 'Received Money',    type: 'income' },
+  { pattern: /b2c payment/i,                   category: '💼 Income',       subcategory: 'Salary / Business', type: 'income' },
+  { pattern: /business payment from/i,         category: '💼 Income',       subcategory: 'Salary / Business', type: 'income' },
 
   // UTILITIES & BILLS
-  { pattern: /kplc/i,                          category: '💡 Utilities',   subcategory: 'Electricity',      type: 'expense' },
-  { pattern: /nairobi water/i,                 category: '💧 Utilities',   subcategory: 'Water',            type: 'expense' },
-  { pattern: /nawasco/i,                       category: '💧 Utilities',   subcategory: 'Water',            type: 'expense' },
-  { pattern: /zuku/i,                          category: '📡 Internet',    subcategory: 'Zuku WiFi/TV',     type: 'expense' },
-  { pattern: /faiba/i,                         category: '📡 Internet',    subcategory: 'Faiba Internet',   type: 'expense' },
-  { pattern: /safaricom home/i,                category: '📡 Internet',    subcategory: 'Safaricom Home',   type: 'expense' },
+  { pattern: /kplc/i,                          category: '💡 Utilities',    subcategory: 'Electricity',       type: 'expense' },
+  { pattern: /nairobi water/i,                 category: '💧 Utilities',    subcategory: 'Water',             type: 'expense' },
+  { pattern: /nawasco/i,                       category: '💧 Utilities',    subcategory: 'Water',             type: 'expense' },
+  { pattern: /zuku/i,                          category: '📡 Internet',     subcategory: 'Zuku WiFi',         type: 'expense' },
+  { pattern: /faiba/i,                         category: '📡 Internet',     subcategory: 'Faiba Internet',    type: 'expense' },
+  { pattern: /mtaa yangu/i,                    category: '📡 Internet',     subcategory: 'Local Internet',    type: 'expense' },
+  { pattern: /safaricom home/i,                category: '📡 Internet',     subcategory: 'Safaricom Home',    type: 'expense' },
 
   // DATA & AIRTIME
-  { pattern: /bundle purchase/i,               category: '📱 Airtime',     subcategory: 'Data Bundles',     type: 'expense' },
-  { pattern: /airtime purchase/i,              category: '📱 Airtime',     subcategory: 'Airtime',          type: 'expense' },
-  { pattern: /safaricom offers/i,              category: '📱 Airtime',     subcategory: 'Bundles / Offers', type: 'expense' },
+  { pattern: /bundle purchase/i,               category: '📱 Airtime',      subcategory: 'Data Bundles',      type: 'expense' },
+  { pattern: /airtime purchase/i,              category: '📱 Airtime',      subcategory: 'Airtime',           type: 'expense' },
+  { pattern: /safaricom offers/i,              category: '📱 Airtime',      subcategory: 'Bundles / Offers',  type: 'expense' },
 
   // SUBSCRIPTIONS
-  { pattern: /claude\.ai/i,                    category: '💻 Subscriptions',subcategory: 'Claude AI',       type: 'expense' },
-  { pattern: /netflix/i,                       category: '🎬 Entertainment',subcategory: 'Netflix',         type: 'expense' },
-  { pattern: /showmax/i,                       category: '🎬 Entertainment',subcategory: 'Showmax',         type: 'expense' },
-  { pattern: /dstv/i,                          category: '🎬 Entertainment',subcategory: 'DStv',            type: 'expense' },
-  { pattern: /spotify/i,                       category: '🎬 Entertainment',subcategory: 'Spotify',         type: 'expense' },
-  { pattern: /globalpay/i,                     category: '💻 Subscriptions',subcategory: 'Online Payment',  type: 'expense' },
-  { pattern: /direct pay/i,                    category: '💻 Subscriptions',subcategory: 'Online Payment',  type: 'expense' },
+  { pattern: /claude\.ai/i,                    category: '💻 Subscriptions', subcategory: 'Claude AI',        type: 'expense' },
+  { pattern: /globalpay/i,                     category: '💻 Subscriptions', subcategory: 'Online Payment',   type: 'expense' },
+  { pattern: /direct pay/i,                    category: '💻 Subscriptions', subcategory: 'Online Payment',   type: 'expense' },
+  { pattern: /pesapal/i,                       category: '💻 Subscriptions', subcategory: 'Online Payment',   type: 'expense' },
+  { pattern: /netflix/i,                       category: '🎬 Entertainment', subcategory: 'Netflix',          type: 'expense' },
+  { pattern: /showmax/i,                       category: '🎬 Entertainment', subcategory: 'Showmax',          type: 'expense' },
+  { pattern: /dstv/i,                          category: '🎬 Entertainment', subcategory: 'DStv',             type: 'expense' },
+  { pattern: /spotify/i,                       category: '🎬 Entertainment', subcategory: 'Spotify',          type: 'expense' },
 
   // GROCERIES & SUPERMARKETS
-  { pattern: /naivas/i,                        category: '🛒 Groceries',   subcategory: 'Naivas',           type: 'expense' },
-  { pattern: /clean shelf/i,                   category: '🛒 Groceries',   subcategory: 'Clean Shelf',      type: 'expense' },
-  { pattern: /quickmart/i,                     category: '🛒 Groceries',   subcategory: 'Quickmart',        type: 'expense' },
-  { pattern: /carrefour/i,                     category: '🛒 Groceries',   subcategory: 'Carrefour',        type: 'expense' },
-  { pattern: /chandarana/i,                    category: '🛒 Groceries',   subcategory: 'Chandarana',       type: 'expense' },
-  { pattern: /supermarket/i,                   category: '🛒 Groceries',   subcategory: 'Supermarket',      type: 'expense' },
+  { pattern: /naivas/i,                        category: '🛒 Groceries',    subcategory: 'Naivas',            type: 'expense' },
+  { pattern: /clean shelf/i,                   category: '🛒 Groceries',    subcategory: 'Clean Shelf',       type: 'expense' },
+  { pattern: /kahawa west/i,                   category: '🛒 Groceries',    subcategory: 'Clean Shelf',       type: 'expense' },
+  { pattern: /quickmart/i,                     category: '🛒 Groceries',    subcategory: 'Quickmart',         type: 'expense' },
+  { pattern: /carrefour/i,                     category: '🛒 Groceries',    subcategory: 'Carrefour',         type: 'expense' },
+  { pattern: /chandarana/i,                    category: '🛒 Groceries',    subcategory: 'Chandarana',        type: 'expense' },
+  { pattern: /supermarket/i,                   category: '🛒 Groceries',    subcategory: 'Supermarket',       type: 'expense' },
 
   // FOOD & DINING
-  { pattern: /java house/i,                    category: '🍽️ Dining',      subcategory: 'Java House',       type: 'expense' },
-  { pattern: /kfc/i,                           category: '🍽️ Dining',      subcategory: 'KFC',              type: 'expense' },
-  { pattern: /chicken inn/i,                   category: '🍽️ Dining',      subcategory: 'Chicken Inn',      type: 'expense' },
-  { pattern: /butchery/i,                      category: '🍽️ Dining',      subcategory: 'Butchery',         type: 'expense' },
-  { pattern: /samosa/i,                        category: '🍽️ Dining',      subcategory: 'Food',             type: 'expense' },
-  { pattern: /restaurant/i,                    category: '🍽️ Dining',      subcategory: 'Restaurant',       type: 'expense' },
+  { pattern: /java house/i,                    category: '🍽️ Dining',       subcategory: 'Java House',        type: 'expense' },
+  { pattern: /kfc/i,                           category: '🍽️ Dining',       subcategory: 'KFC',               type: 'expense' },
+  { pattern: /chicken inn/i,                   category: '🍽️ Dining',       subcategory: 'Chicken Inn',       type: 'expense' },
+  { pattern: /butchery/i,                      category: '🍽️ Dining',       subcategory: 'Butchery',          type: 'expense' },
+  { pattern: /samosa/i,                        category: '🍽️ Dining',       subcategory: 'Food',              type: 'expense' },
+  { pattern: /restaurant/i,                    category: '🍽️ Dining',       subcategory: 'Restaurant',        type: 'expense' },
+  { pattern: /royal ventures/i,                category: '🍽️ Dining',       subcategory: 'Food & Drinks',     type: 'expense' },
 
   // TRANSPORT
-  { pattern: /uber/i,                          category: '🚗 Transport',   subcategory: 'Uber',             type: 'expense' },
-  { pattern: /bolt/i,                          category: '🚗 Transport',   subcategory: 'Bolt',             type: 'expense' },
-  { pattern: /little cab/i,                    category: '🚗 Transport',   subcategory: 'Little Cab',       type: 'expense' },
+  { pattern: /uber/i,                          category: '🚗 Transport',    subcategory: 'Uber',              type: 'expense' },
+  { pattern: /bolt/i,                          category: '🚗 Transport',    subcategory: 'Bolt',              type: 'expense' },
+  { pattern: /little cab/i,                    category: '🚗 Transport',    subcategory: 'Little Cab',        type: 'expense' },
 
   // BANK TRANSFERS
-  { pattern: /co-operative bank/i,             category: '🏦 Banking',     subcategory: 'Co-op Bank',       type: 'transfer' },
-  { pattern: /standard chartered/i,            category: '🏦 Banking',     subcategory: 'Stanchart',        type: 'transfer' },
-  { pattern: /equity bank/i,                   category: '🏦 Banking',     subcategory: 'Equity Bank',      type: 'transfer' },
-  { pattern: /kcb/i,                           category: '🏦 Banking',     subcategory: 'KCB',              type: 'transfer' },
-  { pattern: /absa/i,                          category: '🏦 Banking',     subcategory: 'Absa Bank',        type: 'transfer' },
-  { pattern: /ncba/i,                          category: '🏦 Banking',     subcategory: 'NCBA',             type: 'transfer' },
-  { pattern: /chabrin/i,                       category: '🏦 Banking',     subcategory: 'Bank Transfer',    type: 'transfer' },
-  { pattern: /onafriq/i,                       category: '🌍 Transfer',    subcategory: 'International',    type: 'transfer' },
+  { pattern: /co-operative bank|co operative/i, category: '🏦 Banking',    subcategory: 'Co-op Bank',        type: 'transfer' },
+  { pattern: /standard chartered/i,            category: '🏦 Banking',      subcategory: 'Stanchart',         type: 'transfer' },
+  { pattern: /equity bank/i,                   category: '🏦 Banking',      subcategory: 'Equity Bank',       type: 'transfer' },
+  { pattern: /kcb/i,                           category: '🏦 Banking',      subcategory: 'KCB',               type: 'transfer' },
+  { pattern: /absa/i,                          category: '🏦 Banking',      subcategory: 'Absa Bank',         type: 'transfer' },
+  { pattern: /ncba/i,                          category: '🏦 Banking',      subcategory: 'NCBA',              type: 'transfer' },
+  { pattern: /chabrin/i,                       category: '🏦 Banking',      subcategory: 'Bank Transfer',     type: 'transfer' },
+  { pattern: /onafriq/i,                       category: '🌍 Transfer',     subcategory: 'International',     type: 'transfer' },
+  { pattern: /c2b/i,                           category: '🏦 Banking',      subcategory: 'Bank Transfer',     type: 'transfer' },
 
   // DEBT REPAYMENT
-  { pattern: /fuliza/i,                        category: '💳 Debt',        subcategory: 'Fuliza Repayment', type: 'expense' },
-  { pattern: /kcb mpesa/i,                     category: '💳 Debt',        subcategory: 'KCB M-PESA Loan',  type: 'expense' },
+  { pattern: /fuliza/i,                        category: '💳 Debt',         subcategory: 'Fuliza Repayment',  type: 'expense' },
+  { pattern: /kcb mpesa/i,                     category: '💳 Debt',         subcategory: 'KCB M-PESA Loan',  type: 'expense' },
 
-  // SEND MONEY (catch-all — must be near end)
-  { pattern: /customer transfer to/i,          category: '👤 Send Money',  subcategory: 'Person Transfer',  type: 'expense' },
+  // SEND MONEY — catch-alls at the end
+  { pattern: /customer transfer to/i,          category: '👤 Send Money',   subcategory: 'Person Transfer',   type: 'expense' },
   { pattern: /customer payment to small business/i, category: '🏪 Buy Goods', subcategory: 'Small Business', type: 'expense' },
-  { pattern: /merchant payment/i,              category: '🏪 Buy Goods',  subcategory: 'Merchant',         type: 'expense' },
-  { pattern: /pay bill/i,                      category: '📄 Bills',       subcategory: 'Bill Payment',     type: 'expense' },
+  { pattern: /merchant payment/i,              category: '🏪 Buy Goods',    subcategory: 'Merchant',          type: 'expense' },
+  { pattern: /pay bill/i,                      category: '📄 Bills',        subcategory: 'Bill Payment',      type: 'expense' },
 ]
 
 // Charge/fee line patterns
