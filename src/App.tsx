@@ -17,6 +17,7 @@ function App() {
   const [showMpesaImport, setShowMpesaImport] = useState(false)
   const [refreshTransactions, setRefreshTransactions] = useState(0)
   const [refreshGoals] = useState(0)
+  const [showMore, setShowMore] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -57,7 +58,8 @@ function App() {
     { icon: '💰', label: 'Budget',       page: 'budgeting' },
     { icon: '🎯', label: 'Goals',        page: 'goals' },
     { icon: '💳', label: 'Transactions', page: 'transactions' },
-    { icon: '⚙️', label: 'Settings',     page: 'settings' },
+    { icon: '📈', label: 'Reports',      page: 'reports' },
+  { icon: '⚙️', label: 'Settings',     page: 'settings' },
   ]
 
   const pageContent = (
@@ -73,6 +75,7 @@ function App() {
       {currentPage === 'transactions' && <Transactions onAddNew={() => setShowAddTransaction(true)} refresh={refreshTransactions} />}
       {currentPage === 'goals'        && <Goals refresh={refreshGoals} onGoalUpdate={() => setRefreshTransactions(r => r + 1)} />}
       {currentPage === 'suggestions'  && <SuggestionsPage />}
+      {currentPage === 'reports'      && <ReportsPage />}
       {currentPage === 'settings'     && <SettingsPage onSignOut={handleSignOut} userName={userName} userEmail={userEmail} />}
     </>
   )
@@ -215,14 +218,42 @@ function App() {
 
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-2 pt-2 pb-1 flex items-start justify-around z-50 shadow-lg">
           <NavItem icon="📊" label="Home"         active={currentPage === 'dashboard'}    onClick={() => setCurrentPage('dashboard')} />
-          <NavItem icon="💰" label="Budget"       active={currentPage === 'budgeting'}    onClick={() => setCurrentPage('budgeting')} />
+          <NavItem icon="📈" label="Reports"      active={currentPage === 'reports'}      onClick={() => setCurrentPage('reports')} />
           <div className="flex flex-col items-center -mt-5 cursor-pointer" onClick={() => setShowAddTransaction(true)}>
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-blue-200">＋</div>
           </div>
-          <NavItem icon="🎯" label="Goals"        active={currentPage === 'goals'}        onClick={() => setCurrentPage('goals')} />
           <NavItem icon="💳" label="Transactions" active={currentPage === 'transactions'} onClick={() => setCurrentPage('transactions')} />
-          <NavItem icon="⚙️" label="Settings"     active={currentPage === 'settings'}     onClick={() => setCurrentPage('settings')} />
+          <NavItem icon="☰"  label="More"         active={showMore}                       onClick={() => setShowMore(true)} />
         </div>
+
+        {/* MORE BOTTOM SHEET */}
+        {showMore && (
+          <div className="fixed inset-0 z-[55]">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowMore(false)} />
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl p-5 pb-8">
+              <div className="flex justify-center mb-4">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">More</p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { icon: '💰', label: 'Budget',   page: 'budgeting' },
+                  { icon: '🎯', label: 'Goals',    page: 'goals' },
+                  { icon: '⚙️', label: 'Settings', page: 'settings' },
+                ].map(item => (
+                  <button
+                    key={item.page}
+                    onClick={() => { setCurrentPage(item.page); setShowMore(false) }}
+                    className={`flex flex-col items-center gap-2 py-4 rounded-2xl border transition-all ${currentPage === item.page ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}
+                  >
+                    <span className="text-2xl">{item.icon}</span>
+                    <span className={`text-xs font-bold ${currentPage === item.page ? 'text-blue-600' : 'text-gray-600'}`}>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── SHARED MODALS ── */}
@@ -391,6 +422,20 @@ function DashboardPage({ userName, onAddTransaction, onImportMpesa }: {
 }
 
 /* ── SUGGESTIONS PAGE ─────────────────────────────── */
+/* ── REPORTS PAGE ─────────────────────────────────── */
+function ReportsPage() {
+  return (
+    <div className="px-4 pt-4">
+      <h1 className="text-lg font-extrabold text-[#0F1F3D] mb-1">Reports</h1>
+      <p className="text-xs text-gray-400 mb-4">Coming soon — charts and insights</p>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <p className="text-4xl mb-3">📈</p>
+        <p className="text-sm font-bold text-gray-700 mb-1">Building your reports...</p>
+        <p className="text-xs text-gray-400">Income vs expenses, spending trends and more coming soon.</p>
+      </div>
+    </div>
+  )
+}
 function SuggestionsPage() {
   return (
     <div className="px-4 pt-4">
