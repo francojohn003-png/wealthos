@@ -37,8 +37,8 @@ export default function Budgeting() {
     const { data: cats } = await supabase
       .from('categories')
       .select('*')
-      .eq('user_id', user.id)
       .order('name')
+      .limit(100)
 
     // Load transactions for this month
     const { data: transactions } = await supabase
@@ -68,7 +68,7 @@ export default function Budgeting() {
       })
 
       const categorySpends = cats
-        .filter(c => c.type !== 'income')
+        .filter(c => !['Business Income', 'Salary', 'Internal Transfer', 'Savings Transfer', 'Investment'].includes(c.name))
         .map(c => ({
           ...c,
           spent: spendMap[c.id] || 0
@@ -224,14 +224,14 @@ export default function Budgeting() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {categories.filter(c => c.spent > 0 || c.monthly_budget > 0).length === 0 ? (
+            {categories.length === 0 ? (
               <div className="p-6 text-center">
                 <p className="text-gray-400 text-sm">No spending data yet this month.</p>
                 <p className="text-gray-300 text-xs mt-1">Add transactions to see your budget breakdown.</p>
               </div>
             ) : (
               categories
-                .filter(c => c.spent > 0 || c.monthly_budget > 0)
+                .sort((a, b) => b.spent - a.spent)
                 .map((cat, i, arr) => {
                   const pct = cat.monthly_budget > 0
                     ? Math.min(Math.round((cat.spent / cat.monthly_budget) * 100), 100)
