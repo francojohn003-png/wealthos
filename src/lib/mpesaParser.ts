@@ -153,7 +153,13 @@ function parseAmount(val: string): number {
 // ── MAIN PARSER FUNCTION ──────────────────────────
 export async function parseMpesaPDF(file: File): Promise<MpesaTransaction[]> {
   const arrayBuffer = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  const uint8Array = new Uint8Array(arrayBuffer)
+    const pdf = await pdfjsLib.getDocument({ 
+      data: uint8Array,
+      useWorkerFetch: false,
+      isEvalSupported: false,
+      useSystemFonts: true,
+    }).promise
 
   // Extract all text from all pages
   const allLines: string[] = []

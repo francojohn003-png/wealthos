@@ -491,8 +491,19 @@ function ContactRules() {
     setLoading(false)
   }
 
-  async function updateRule(id: string, categoryId: string) {
+  async function updateRule(id: string, categoryId: string, contactName: string) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Update the rule
     await supabase.from('contact_rules').update({ category_id: categoryId }).eq('id', id)
+
+    // Update ALL transactions with this contact name
+    await supabase.from('transactions')
+      .update({ category_id: categoryId, needs_review: false })
+      .eq('user_id', user.id)
+      .eq('description', contactName)
+
     setEditingId(null)
     loadData()
   }
@@ -539,7 +550,7 @@ function ContactRules() {
                   <select
                     autoFocus
                     defaultValue={rule.category_id}
-                    onChange={e => updateRule(rule.id, e.target.value)}
+                    onChange={e => updateRule(rule.id, e.target.value, rule.contact_name)}
                     onBlur={() => setEditingId(null)}
                     className="text-xs border border-blue-300 rounded-lg px-2 py-1 bg-white outline-none"
                   >
