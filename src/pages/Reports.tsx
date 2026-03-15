@@ -63,7 +63,7 @@ export default function Reports() {
     const monthMap = new Map<string, MonthData>()
     transactions.forEach(tx => {
       const d = new Date(tx.transaction_date)
-      const key = d.toLocaleDateString('en-KE', { month: 'short', year: '2-digit' })
+      const key = `${d.toLocaleString('en-KE', { month: 'short' })} ${d.getFullYear().toString().slice(2)}`
       if (!monthMap.has(key)) monthMap.set(key, { month: key, income: 0, expenses: 0, savings: 0 })
       const m = monthMap.get(key)!
       if (tx.type === 'income') m.income += tx.amount
