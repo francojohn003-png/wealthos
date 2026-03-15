@@ -7,6 +7,7 @@ import Transactions from './pages/Transactions'
 import Goals from './pages/Goals'
 import Budgeting from './pages/Budgeting'
 import MpesaImport from './pages/MpesaImport'
+import Reports from './pages/Reports'
 import type { Session } from '@supabase/supabase-js'
 
 function App() {
@@ -75,7 +76,7 @@ function App() {
       {currentPage === 'transactions' && <Transactions onAddNew={() => setShowAddTransaction(true)} refresh={refreshTransactions} />}
       {currentPage === 'goals'        && <Goals refresh={refreshGoals} onGoalUpdate={() => setRefreshTransactions(r => r + 1)} />}
       {currentPage === 'suggestions'  && <SuggestionsPage />}
-      {currentPage === 'reports'      && <ReportsPage />}
+      {currentPage === 'reports'      && <Reports />}
       {currentPage === 'settings'     && <SettingsPage onSignOut={handleSignOut} userName={userName} userEmail={userEmail} />}
     </>
   )
@@ -422,20 +423,7 @@ function DashboardPage({ userName, onAddTransaction, onImportMpesa }: {
 }
 
 /* ── SUGGESTIONS PAGE ─────────────────────────────── */
-/* ── REPORTS PAGE ─────────────────────────────────── */
-function ReportsPage() {
-  return (
-    <div className="px-4 pt-4">
-      <h1 className="text-lg font-extrabold text-[#0F1F3D] mb-1">Reports</h1>
-      <p className="text-xs text-gray-400 mb-4">Coming soon — charts and insights</p>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-        <p className="text-4xl mb-3">📈</p>
-        <p className="text-sm font-bold text-gray-700 mb-1">Building your reports...</p>
-        <p className="text-xs text-gray-400">Income vs expenses, spending trends and more coming soon.</p>
-      </div>
-    </div>
-  )
-}
+
 function SuggestionsPage() {
   return (
     <div className="px-4 pt-4">
